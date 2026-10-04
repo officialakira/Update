@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HexScript — Key System</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; }
+  body {
+    min-height: 100vh;
+    background: radial-gradient(ellipse at top, #161616 0%, #000000 60%);
+    color: #f5f5f5;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .glow-orb {
+    position: fixed; width: 500px; height: 500px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+  nav {
+    width: 100%; padding: 18px 32px; display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.06); backdrop-filter: blur(10px); z-index: 2;
+  }
+  .logo { font-size: 20px; font-weight: 800; letter-spacing: 1px; }
+  .logo span { color: #ffffff; }
+  nav a { color: #9a9a9a; text-decoration: none; font-size: 14px; margin-left: 20px; transition: color .2s; }
+  nav a:hover { color: #fff; }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; z-index: 1; width: 100%; }
+  .card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px; padding: 40px; max-width: 480px; width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    text-align: center;
+  }
+  h1 { font-size: 28px; margin-bottom: 8px; }
+  h1 .accent { background: linear-gradient(90deg,#ffffff,#8a8a8a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .sub { color: #9a9a9a; font-size: 14px; margin-bottom: 28px; }
+  .steps { display: flex; justify-content: center; gap: 10px; margin-bottom: 28px; }
+  .step {
+    width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; border: 2px solid rgba(255,255,255,0.12); color: #9a9a9a;
+    transition: all .3s;
+  }
+  .step.active { border-color: #ffffff; color: #fff; background: rgba(255,255,255,0.12); box-shadow: 0 0 16px rgba(255,255,255,0.25); }
+  .step.done { border-color: #ffffff; color: #ffffff; background: rgba(255,255,255,0.08); }
+  .step-line { flex: 0 0 24px; height: 2px; background: rgba(255,255,255,0.1); align-self: center; }
+  .btn {
+    width: 100%; padding: 15px; border: none; border-radius: 12px; cursor: pointer;
+    font-size: 15px; font-weight: 700; letter-spacing: .5px;
+    background: #ffffff; color: #0a0a0a;
+    transition: transform .15s, box-shadow .15s, opacity .2s;
+  }
+  .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255,255,255,0.25); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .keybox {
+    display: none; margin-top: 24px; padding: 18px; border-radius: 12px;
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.3);
+  }
+  .keybox .key {
+    font-family: 'Consolas', monospace; font-size: 16px; font-weight: 700; color: #ffffff;
+    word-break: break-all; margin-bottom: 12px; user-select: all;
+  }
+  .copybtn {
+    padding: 9px 22px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.4);
+    background: transparent; color: #ffffff; font-weight: 700; cursor: pointer; font-size: 13px;
+    transition: background .2s;
+  }
+  .copybtn:hover { background: rgba(255,255,255,0.12); }
+  .expiry { font-size: 12px; color: #9a9a9a; margin-top: 10px; }
+  .msg { margin-top: 14px; font-size: 13px; min-height: 18px; color: #9a9a9a; }
+  .msg.ok { color: #ffffff; }
+  .stats { display: flex; gap: 28px; margin-top: 36px; z-index: 1; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 22px; font-weight: 800; color: #ffffff; }
+  .stat .lbl { font-size: 11px; color: #9a9a9a; text-transform: uppercase; letter-spacing: 1px; }
+  .howto {
+    max-width: 480px; width: 100%; margin-top: 28px; z-index: 1;
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px; padding: 24px;
+  }
+  .howto h3 { font-size: 15px; margin-bottom: 12px; }
+  .howto ol { padding-left: 20px; color: #9a9a9a; font-size: 13px; line-height: 2; }
+  .howto code { background: rgba(255,255,255,0.1); color: #e5e5e5; padding: 2px 7px; border-radius: 5px; font-size: 12px; }
+  footer { padding: 20px; color: #555555; font-size: 12px; z-index: 1; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.25);
+    border-top-color: #0a0a0a; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: -2px; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="glow-orb" style="top:-150px;left:50%;transform:translateX(-50%)"></div>
+  <nav>
+    <div class="logo">HEX<span>SCRIPT</span></div>
+    <div>
+      <a href="/">Get Key</a>
+      <a href="/admin.html">Admin</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="card">
+      <h1>Get Your <span class="accent">Key</span></h1>
+      <p class="sub">Complete the checkpoints below to receive your 24-hour access key.</p>
+
+      <div class="steps" id="steps"></div>
+
+      <button class="btn" id="actionBtn">Start</button>
+
+      <div class="keybox" id="keybox">
+        <div class="key" id="keyText"></div>
+        <button class="copybtn" id="copyBtn">📋 Copy Key</button>
+        <div class="expiry" id="expiry"></div>
+      </div>
+
+      <div class="msg" id="msg"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="num" id="sActive">—</div><div class="lbl">Active Keys</div></div>
+      <div class="stat"><div class="num" id="sGen">—</div><div class="lbl">Keys Generated</div></div>
+      <div class="stat"><div class="num" id="sVal">—</div><div class="lbl">Validations</div></div>
+    </div>
+
+    <div class="howto">
+      <h3>📖 How to use your key</h3>
+      <ol>
+        <li>Copy your key above</li>
+        <li>Launch Roblox and execute the HexScript loader script</li>
+        <li>Paste the key into the in-game prompt and press <code>Submit</code></li>
+        <li>Your key is locked to your device and lasts <span id="lifeHours">24</span> hours</li>
+      </ol>
+    </div>
+  </main>
+
+  <footer>HexScript Key System • Keys are HWID-locked • Abuse results in a blacklist</footer>
+
+<script>
+  const CHECKPOINT_LABELS = ["Checkpoint 1", "Checkpoint 2"];
+  let sessionId = null, checkpointsRequired = 2, checkpoint = 0, state = "idle";
+
+  const stepsEl = document.getElementById("steps");
+  const btn = document.getElementById("actionBtn");
+  const msg = document.getElementById("msg");
+  const keybox = document.getElementById("keybox");
+
+  function renderSteps() {
+    stepsEl.innerHTML = "";
+    const total = checkpointsRequired + 1; // checkpoints + key step
+    for (let i = 0; i < total; i++) {
+      if (i > 0) { const l = document.createElement("div"); l.className = "step-line"; stepsEl.appendChild(l); }
+      const d = document.createElement("div");
+      d.className = "step" + (i < checkpoint ? " done" : i === checkpoint && state !== "idle" ? " active" : "");
+      d.textContent = i < checkpoint ? "✓" : (i === total - 1 ? "🔑" : i + 1);
+      stepsEl.appendChild(d);
+    }
+  }
+
+  function setMsg(text, ok) { msg.textContent = text || ""; msg.className = "msg" + (ok ? " ok" : ""); }
+
+  async function api(path, body) {
+    const r = await fetch(path, {
+      method: body ? "POST" : "GET",
+      headers: { "Content-Type": "application/json" },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return r.json();
+  }
+
+  // Simple browser fingerprint used as a soft HWID for the website side
+  function browserFingerprint() {
+    const raw = [navigator.userAgent, navigator.language, screen.width, screen.height, new Date().getTimezoneOffset()].join("|");
+    let h = 0;
+    for (let i = 0; i < raw.length; i++) { h = (h * 31 + raw.charCodeAt(i)) >>> 0; }
+    return "WEB-" + h.toString(16).toUpperCase();
+  }
+
+  btn.addEventListener("click", async () => {
+    try {
+      btn.disabled = true;
+      if (state === "idle") {
+        btn.innerHTML = '<span class="spinner"></span>Starting...';
+        const r = await api("/api/session", {});
+        if (!r.success) throw new Error(r.message);
+        sessionId = r.sessionId;
+        checkpointsRequired = r.checkpointsRequired;
+        state = "checkpoints";
+        checkpoint = 0;
+        setMsg("");
+        updateBtn();
+      } else if (state === "checkpoints") {
+        // In production, redirect to your Linkvertise/Lootlabs link here,
+        // and call /api/checkpoint from the destination page instead.
+        btn.innerHTML = '<span class="spinner"></span>Completing checkpoint...';
+        await new Promise(res => setTimeout(res, 3200)); // simulated ad wait
+        const r = await api("/api/checkpoint", { sessionId });
+        if (!r.success) throw new Error(r.message);
+        checkpoint = r.checkpoint;
+        if (r.done) state = "ready";
+        updateBtn();
+      } else if (state === "ready") {
+        btn.innerHTML = '<span class="spinner"></span>Generating key...';
+        const r = await api("/api/getkey", { sessionId, hwid: browserFingerprint() });
+        if (!r.success) throw new Error(r.message);
+        checkpoint = checkpointsRequired + 1;
+        document.getElementById("keyText").textContent = r.key;
+        keybox.style.display = "block";
+        if (r.expiresAt) {
+          document.getElementById("expiry").textContent = "Expires: " + new Date(r.expiresAt).toLocaleString();
+        }
+        setMsg(r.message || "Key generated successfully!", true);
+        state = "done";
+        updateBtn();
+        loadStats();
+      }
+    } catch (e) {
+      setMsg(e.message || "Something went wrong.");
+      btn.disabled = false;
+      updateBtn(true);
+    }
+    renderSteps();
+  });
+
+  function updateBtn(keepLabel) {
+    btn.disabled = false;
+    if (state === "idle") btn.textContent = "Start";
+    else if (state === "checkpoints") btn.textContent = "Complete " + (CHECKPOINT_LABELS[checkpoint] || "Checkpoint " + (checkpoint + 1));
+    else if (state === "ready") btn.textContent = "🔑 Generate Key";
+    else if (state === "done") { btn.textContent = "Key Generated ✓"; btn.disabled = true; }
+  }
+
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const k = document.getElementById("keyText").textContent;
+    navigator.clipboard.writeText(k).then(() => setMsg("Copied to clipboard!", true));
+  });
+
+  async function loadStats() {
+    try {
+      const s = await api("/api/stats");
+      document.getElementById("sActive").textContent = s.activeKeys;
+      document.getElementById("sGen").textContent = s.totalGenerated;
+      document.getElementById("sVal").textContent = s.totalValidations;
+      document.getElementById("lifeHours").textContent = s.keyLifetimeHours;
+    } catch (e) {}
+  }
+
+  renderSteps(); updateBtn(); loadStats();
+  setInterval(loadStats, 10000);
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4513c6c6a508b45',t:'MTc5MTA4NTk2OQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
